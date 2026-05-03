@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TaskFlow — Add Task</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0d0e11;
+      --surface: #14161c;
+      --surface2:#1a1d26;
+      --border:  #2a2d38;
+      --accent:  #f5c542;
+      --accent2: #e8a000;
+      --text:    #e8eaf0;
+      --muted:   #6b7080;
+      --error:   #ff5c5c;
+      --success: #4cde8a;
+      --mono:    'IBM Plex Mono', monospace;
+      --sans:    'IBM Plex Sans', sans-serif;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(245,197,66,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(245,197,66,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,14,17,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-icon {
+      width: 30px; height: 30px; background: var(--accent);
+      border-radius: 7px; display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-weight: 600; font-size: 15px; color: #000;
+    }
+    .nav-name { font-family: var(--mono); font-weight: 600; color: var(--text); font-size: 16px; }
+    .nav-spacer { flex: 1; }
+    .back-link {
+      display: flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 13px;
+      color: var(--muted); text-decoration: none;
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .back-link:hover { color: var(--text); border-color: var(--text); }
+
+    main {
+      position: relative; z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 40px 32px;
+    }
+
+    .page-header { margin-bottom: 32px; animation: fadeUp 0.5s ease both; }
+    .page-header h1 { font-size: 26px; font-weight: 600; }
+    .page-header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.5s 0.1s ease both;
+      opacity: 0;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .form-group { margin-bottom: 24px; }
+    .form-group.full { grid-column: span 2; }
+
+    label {
+      display: block;
+      font-family: var(--mono); font-size: 11px;
+      font-weight: 500; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .required-star { color: var(--accent); }
+
+    input[type="text"],
+    input[type="date"],
+    textarea,
+    select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: var(--mono); font-size: 14px;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245,197,66,0.1);
+    }
+    input.invalid, select.invalid, textarea.invalid {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(255,92,92,0.1);
+    }
+    textarea { resize: vertical; min-height: 100px; }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7080' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 40px;
+    }
+    select option { background: #1a1d26; }
+
+    .err-msg {
+      font-family: var(--mono); font-size: 11px;
+      color: var(--error); margin-top: 5px;
+      display: none;
+    }
+    .err-msg.show { display: block; }
+
+    .char-count {
+      font-family: var(--mono); font-size: 11px;
+      color: var(--muted); text-align: right;
+      margin-top: 4px;
+    }
+    .char-count.warn { color: var(--accent); }
+
+    /* Priority visual selector */
+    .priority-opts {
+      display: flex; gap: 10px;
+    }
+    .priority-opt {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      background: var(--bg);
+    }
+    .priority-opt .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      margin: 0 auto 6px;
+    }
+    .priority-opt .lbl { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .priority-opt[data-v="high"]   .dot { background: var(--error); }
+    .priority-opt[data-v="medium"] .dot { background: #ff9f43; }
+    .priority-opt[data-v="low"]    .dot { background: var(--success); }
+    .priority-opt.selected[data-v="high"]   { border-color: var(--error);   background: rgba(255,92,92,0.08); }
+    .priority-opt.selected[data-v="medium"] { border-color: #ff9f43;         background: rgba(255,159,67,0.08); }
+    .priority-opt.selected[data-v="low"]    { border-color: var(--success); background: rgba(76,222,138,0.08); }
+    .priority-opt.selected .lbl { color: var(--text); }
+    input[type="hidden"] { display: none; }
+
+    /* Tags */
+    .tags-wrap {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px;
+      min-height: 48px; align-items: center;
+      cursor: text; transition: border-color 0.2s;
+    }
+    .tags-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(245,197,66,0.1); }
+    .tag-chip {
+      background: rgba(245,197,66,0.12); border: 1px solid rgba(245,197,66,0.3);
+      color: var(--accent); border-radius: 6px;
+      padding: 3px 8px; font-family: var(--mono); font-size: 12px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .tag-chip button {
+      background: none; border: none; color: var(--accent);
+      cursor: pointer; font-size: 14px; line-height: 1; padding: 0;
+    }
+    .tag-input {
+      background: transparent; border: none; outline: none;
+      color: var(--text); font-family: var(--mono); font-size: 13px;
+      min-width: 100px; flex: 1;
+    }
+    .tag-hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+    .form-footer {
+      display: flex; justify-content: flex-end; gap: 12px;
+      margin-top: 8px; padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    .btn-cancel {
+      padding: 12px 24px;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 10px; color: var(--muted);
+      font-family: var(--mono); font-size: 13px;
+      cursor: pointer; transition: all 0.2s; text-decoration: none;
+      display: flex; align-items: center;
+    }
+    .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+    .btn-submit {
+      padding: 12px 28px;
+      background: var(--accent); border: none; border-radius: 10px;
+      color: #000; font-family: var(--mono); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-submit:hover { background: var(--accent2); }
+    .btn-submit:active { transform: scale(0.97); }
+
+    .edit-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(245,197,66,0.1); border: 1px solid rgba(245,197,66,0.3);
+      border-radius: 6px; padding: 4px 10px;
+      font-family: var(--mono); font-size: 11px; color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-brand">
+      <div class="nav-icon">T</div>
+      <span class="nav-name">TaskFlow</span>
+    </a>
+    <div class="nav-spacer"></div>
+    <a href="dashboard.html" class="back-link" data-testid="btn-back">← Dashboard</a>
+  </nav>
+
+  <main>
+    <div class="page-header">
+      <div id="editBadge" class="edit-badge" style="display:none">✎ Edit Mode</div>
+      <h1 id="pageTitle">Add New Task</h1>
+      <p id="pageSubtitle">Fill in the details to create a new task.</p>
+    </div>
+
+    <div class="card">
+      <div class="form-row">
+
+        <!-- Title -->
+        <div class="form-group full">
+          <label for="taskTitle">Task Title <span class="required-star">*</span></label>
+          <input type="text" id="taskTitle" data-testid="input-title" placeholder="e.g. Write Playwright login tests" maxlength="100"/>
+          <div class="char-count" id="titleCount">0 / 100</div>
+          <div class="err-msg" id="titleErr">Title is required.</div>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group full">
+          <label for="taskDesc">Description</label>
+          <textarea id="taskDesc" data-testid="input-description" placeholder="Describe what needs to be done…" maxlength="500"></textarea>
+          <div class="char-count" id="descCount">0 / 500</div>
+        </div>
+
+        <!-- Status -->
+        <div class="form-group">
+          <label for="taskStatus">Status <span class="required-star">*</span></label>
+          <select id="taskStatus" data-testid="select-status">
+            <option value="">— Select status —</option>
+            <option value="todo">To Do</option>
+            <option value="in-progress">In Progress</option>
+            <option value="done">Done</option>
+            <option value="blocked">Blocked</option>
+          </select>
+          <div class="err-msg" id="statusErr">Please select a status.</div>
+        </div>
+
+        <!-- Due Date -->
+        <div class="form-group">
+          <label for="taskDue">Due Date <span class="required-star">*</span></label>
+          <input type="date" id="taskDue" data-testid="input-due-date"/>
+          <div class="err-msg" id="dueErr">Please set a due date.</div>
+        </div>
+
+        <!-- Priority -->
+        <div class="form-group full">
+          <label>Priority <span class="required-star">*</span></label>
+          <input type="hidden" id="taskPriority" data-testid="input-priority"/>
+          <div class="priority-opts" id="priorityOpts">
+            <div class="priority-opt" data-v="high"   data-testid="priority-high"   onclick="selectPriority(this)">
+              <div class="dot"></div><div class="lbl">High</div>
+            </div>
+            <div class="priority-opt" data-v="medium" data-testid="priority-medium" onclick="selectPriority(this)">
+              <div class="dot"></div><div class="lbl">Medium</div>
+            </div>
+            <div class="priority-opt" data-v="low"    data-testid="priority-low"    onclick="selectPriority(this)">
+              <div class="dot"></div><div class="lbl">Low</div>
+            </div>
+          </div>
+          <div class="err-msg" id="priorityErr">Please select a priority level.</div>
+        </div>
+
+        <!-- Assignee -->
+        <div class="form-group">
+          <label for="taskAssignee">Assignee</label>
+          <select id="taskAssignee" data-testid="select-assignee">
+            <option value="">— Unassigned —</option>
+            <option value="alice">Alice</option>
+            <option value="bob">Bob</option>
+            <option value="carol">Carol</option>
+            <option value="dave">Dave</option>
+          </select>
+        </div>
+
+        <!-- Category -->
+        <div class="form-group">
+          <label for="taskCategory">Category</label>
+          <select id="taskCategory" data-testid="select-category">
+            <option value="">— None —</option>
+            <option value="testing">Testing</option>
+            <option value="development">Development</option>
+            <option value="design">Design</option>
+            <option value="devops">DevOps</option>
+            <option value="research">Research</option>
+          </select>
+        </div>
+
+        <!-- Tags -->
+        <div class="form-group full">
+          <label>Tags</label>
+          <div class="tags-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
+            <input type="text" id="tagInput" class="tag-input" data-testid="input-tags" placeholder="Type and press Enter…"/>
+          </div>
+          <div class="tag-hint">Press Enter or comma to add a tag.</div>
+        </div>
+
+      </div>
+
+      <div class="form-footer">
+        <a href="dashboard.html" class="btn-cancel" data-testid="btn-cancel">Cancel</a>
+        <button class="btn-submit" id="submitBtn" data-testid="btn-submit" onclick="handleSubmit()">
+          Create Task
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    if (!sessionStorage.getItem('tf_user')) {
+      window.location.href = 'index.html';
+    }
+
+    // ---- Tags ----
+    let tags = [];
+    const tagInput = document.getElementById('tagInput');
+    const tagsWrap = document.getElementById('tagsWrap');
+
+    tagInput.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ',') && tagInput.value.trim()) {
+        e.preventDefault();
+        addTag(tagInput.value.trim().replace(',',''));
+        tagInput.value = '';
+      } else if (e.key === 'Backspace' && !tagInput.value && tags.length) {
+        removeTag(tags[tags.length - 1]);
+      }
+    });
+
+    function addTag(t) {
+      if (!t || tags.includes(t) || tags.length >= 5) return;
+      tags.push(t);
+      renderTags();
+    }
+    function removeTag(t) {
+      tags = tags.filter(x => x !== t);
+      renderTags();
+    }
+    function renderTags() {
+      const chips = tagsWrap.querySelectorAll('.tag-chip');
+      chips.forEach(c => c.remove());
+      tags.forEach(t => {
+        const chip = document.createElement('div');
+        chip.className = 'tag-chip';
+        chip.setAttribute('data-testid', `tag-chip-${t}`);
+        chip.innerHTML = `${t}<button type="button" onclick="removeTag('${t}')">×</button>`;
+        tagsWrap.insertBefore(chip, tagInput);
+      });
+    }
+
+    // ---- Priority ----
+    function selectPriority(el) {
+      document.querySelectorAll('.priority-opt').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('taskPriority').value = el.dataset.v;
+      document.getElementById('priorityErr').classList.remove('show');
+    }
+
+    // ---- Char counters ----
+    ['taskTitle','taskDesc'].forEach(id => {
+      const el = document.getElementById(id);
+      const cnt = document.getElementById(id === 'taskTitle' ? 'titleCount' : 'descCount');
+      el.addEventListener('input', () => {
+        cnt.textContent = `${el.value.length} / ${el.maxLength}`;
+        cnt.classList.toggle('warn', el.value.length > el.maxLength * 0.8);
+      });
+    });
+
+    // ---- Edit mode ----
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('id') ? parseInt(params.get('id')) : null;
+
+    function getTasks() {
+      const raw = localStorage.getItem('tf_tasks');
+      return raw ? JSON.parse(raw) : [];
+    }
+    function saveTasks(tasks) {
+      localStorage.setItem('tf_tasks', JSON.stringify(tasks));
+    }
+
+    if (editId) {
+      document.getElementById('editBadge').style.display = 'flex';
+      document.getElementById('pageTitle').textContent   = 'Edit Task';
+      document.getElementById('pageSubtitle').textContent = 'Update the task details below.';
+      document.getElementById('submitBtn').textContent   = 'Save Changes';
+
+      // Load from localStorage (fallback: default tasks embedded in dashboard)
+      const defaultTasks = [
+        { id:1, title:'Set up Playwright environment', desc:'Install & configure Playwright with TypeScript', status:'done',        priority:'high',   due:'2026-04-20', assignee:'alice', category:'testing',     tags:['setup','playwright'] },
+        { id:2, title:'Write login page tests',        desc:'Test validation, success & failure flows',   status:'done',        priority:'high',   due:'2026-04-25', assignee:'bob',   category:'testing',     tags:['login'] },
+        { id:3, title:'Write dashboard tests',         desc:'Test filters, search, and task actions',     status:'in-progress', priority:'high',   due:'2026-05-05', assignee:'carol', category:'testing',     tags:['dashboard'] },
+        { id:4, title:'Write add-task form tests',     desc:'Test all form fields and submission',        status:'in-progress', priority:'medium', due:'2026-05-08', assignee:'',      category:'testing',     tags:[] },
+        { id:5, title:'Add API mocking layer',         desc:'Mock backend endpoints for isolated tests',  status:'todo',        priority:'medium', due:'2026-05-12', assignee:'dave',  category:'development', tags:['api','mock'] },
+        { id:6, title:'Setup CI/CD pipeline',          desc:'Run Playwright in GitHub Actions',           status:'todo',        priority:'low',    due:'2026-05-20', assignee:'',      category:'devops',      tags:['ci','github'] },
+        { id:7, title:'Fix flaky test on mobile',      desc:'Safari viewport issue on login page',        status:'blocked',     priority:'high',   due:'2026-05-03', assignee:'alice', category:'testing',     tags:['mobile','bug'] },
+      ];
+      const allTasks = localStorage.getItem('tf_tasks') ? getTasks() : defaultTasks;
+      const task = allTasks.find(t => t.id === editId);
+      if (task) {
+        document.getElementById('taskTitle').value    = task.title;
+        document.getElementById('taskDesc').value     = task.desc || '';
+        document.getElementById('taskStatus').value   = task.status;
+        document.getElementById('taskDue').value      = task.due || '';
+        document.getElementById('taskAssignee').value = task.assignee || '';
+        document.getElementById('taskCategory').value = task.category || '';
+        // Char counts
+        document.getElementById('titleCount').textContent = `${task.title.length} / 100`;
+        document.getElementById('descCount').textContent  = `${(task.desc||'').length} / 500`;
+        // Priority
+        const pOpt = document.querySelector(`.priority-opt[data-v="${task.priority}"]`);
+        if (pOpt) selectPriority(pOpt);
+        // Tags
+        (task.tags || []).forEach(addTag);
+      }
+    }
+
+    // ---- Submit ----
+    function handleSubmit() {
+      let valid = true;
+
+      const title    = document.getElementById('taskTitle');
+      const status   = document.getElementById('taskStatus');
+      const due      = document.getElementById('taskDue');
+      const priority = document.getElementById('taskPriority');
+
+      // Reset
+      [title, status, due].forEach(el => el.classList.remove('invalid'));
+      ['titleErr','statusErr','dueErr','priorityErr'].forEach(id => document.getElementById(id).classList.remove('show'));
+
+      if (!title.value.trim()) {
+        title.classList.add('invalid');
+        document.getElementById('titleErr').classList.add('show');
+        valid = false;
+      }
+      if (!status.value) {
+        status.classList.add('invalid');
+        document.getElementById('statusErr').classList.add('show');
+        valid = false;
+      }
+      if (!due.value) {
+        due.classList.add('invalid');
+        document.getElementById('dueErr').classList.add('show');
+        valid = false;
+      }
+      if (!priority.value) {
+        document.getElementById('priorityErr').classList.add('show');
+        valid = false;
+      }
+      if (!valid) return;
+
+      const btn = document.getElementById('submitBtn');
+      btn.textContent = editId ? 'Saving…' : 'Creating…';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        let tasks = getTasks();
+        if (!tasks.length) {
+          // seed defaults first
+          tasks = [
+            { id:1, title:'Set up Playwright environment', desc:'Install & configure Playwright with TypeScript', status:'done',        priority:'high',   due:'2026-04-20' },
+            { id:2, title:'Write login page tests',        desc:'Test validation, success & failure flows',   status:'done',        priority:'high',   due:'2026-04-25' },
+            { id:3, title:'Write dashboard tests',         desc:'Test filters, search, and task actions',     status:'in-progress', priority:'high',   due:'2026-05-05' },
+            { id:4, title:'Write add-task form tests',     desc:'Test all form fields and submission',        status:'in-progress', priority:'medium', due:'2026-05-08' },
+            { id:5, title:'Add API mocking layer',         desc:'Mock backend endpoints for isolated tests',  status:'todo',        priority:'medium', due:'2026-05-12' },
+            { id:6, title:'Setup CI/CD pipeline',          desc:'Run Playwright in GitHub Actions',           status:'todo',        priority:'low',    due:'2026-05-20' },
+            { id:7, title:'Fix flaky test on mobile',      desc:'Safari viewport issue on login page',        status:'blocked',     priority:'high',   due:'2026-05-03' },
+          ];
+        }
+
+        const newTask = {
+          id:        editId || Date.now(),
+          title:     title.value.trim(),
+          desc:      document.getElementById('taskDesc').value.trim(),
+          status:    status.value,
+          priority:  priority.value,
+          due:       due.value,
+          assignee:  document.getElementById('taskAssignee').value,
+          category:  document.getElementById('taskCategory').value,
+          tags,
+        };
+
+        if (editId) {
+          const idx = tasks.findIndex(t => t.id === editId);
+          if (idx > -1) tasks[idx] = newTask;
+        } else {
+          tasks.push(newTask);
+        }
+        saveTasks(tasks);
+        sessionStorage.setItem('tf_toast', editId ? 'Task updated successfully!' : 'Task created successfully!');
+        window.location.href = 'dashboard.html';
+      }, 700);
+    }
+  </script>
+</body>
+</html>

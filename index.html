@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TaskFlow — Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0e11;
+      --surface:  #14161c;
+      --border:   #2a2d38;
+      --accent:   #f5c542;
+      --accent2:  #e8a000;
+      --text:     #e8eaf0;
+      --muted:    #6b7080;
+      --error:    #ff5c5c;
+      --success:  #4cde8a;
+      --mono:     'IBM Plex Mono', monospace;
+      --sans:     'IBM Plex Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* grid background */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(245,197,66,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(245,197,66,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .glow {
+      position: fixed;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(245,197,66,0.08) 0%, transparent 70%);
+      top: -100px; left: -100px;
+      pointer-events: none;
+      animation: driftGlow 12s ease-in-out infinite alternate;
+    }
+    @keyframes driftGlow {
+      from { transform: translate(0,0); }
+      to   { transform: translate(120px, 80px); }
+    }
+
+    .login-wrapper {
+      position: relative;
+      width: 440px;
+      animation: fadeUp 0.6s ease forwards;
+      opacity: 0;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+    .brand-icon {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 18px;
+      color: #000;
+    }
+    .brand-name {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .brand-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      background: rgba(245,197,66,0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(245,197,66,0.2);
+      margin-left: auto;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 16px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245,197,66,0.12);
+    }
+    input.error-field {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(255,92,92,0.1);
+    }
+    .error-msg {
+      font-size: 12px;
+      color: var(--error);
+      margin-top: 6px;
+      display: none;
+      font-family: var(--mono);
+    }
+    .error-msg.visible { display: block; }
+
+    .remember-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .remember-row label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text);
+      cursor: pointer;
+      margin-bottom: 0;
+    }
+    input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--accent);
+    }
+    .forgot-link {
+      font-size: 13px;
+      color: var(--accent);
+      text-decoration: none;
+      font-family: var(--mono);
+    }
+    .forgot-link:hover { text-decoration: underline; }
+
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: background 0.2s, transform 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-login:hover { background: var(--accent2); }
+    .btn-login:active { transform: scale(0.98); }
+    .btn-login.loading { pointer-events: none; opacity: 0.7; }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 24px 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      height: 1px; background: var(--border);
+    }
+
+    .demo-hint {
+      background: rgba(245,197,66,0.06);
+      border: 1px solid rgba(245,197,66,0.15);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .demo-hint p {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .demo-hint .creds {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .alert.error { background: rgba(255,92,92,0.1); border: 1px solid rgba(255,92,92,0.3); color: var(--error); }
+    .alert.success { background: rgba(76,222,138,0.1); border: 1px solid rgba(76,222,138,0.3); color: var(--success); }
+    .alert.visible { display: block; }
+
+    .page-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+
+  <div class="login-wrapper">
+    <div class="brand">
+      <div class="brand-icon">T</div>
+      <span class="brand-name">TaskFlow</span>
+      <span class="brand-tag">v1.0</span>
+    </div>
+
+    <div class="card">
+      <div id="alertBox" class="alert"></div>
+      <h1>Welcome back</h1>
+      <p class="subtitle">Sign in to manage your tasks and track progress.</p>
+
+      <div class="form-group">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" data-testid="input-email"/>
+        <span class="error-msg" id="emailErr">Please enter a valid email address.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" data-testid="input-password"/>
+        <span class="error-msg" id="passErr">Password must be at least 6 characters.</span>
+      </div>
+
+      <div class="remember-row">
+        <label>
+          <input type="checkbox" id="remember" data-testid="checkbox-remember"/>
+          Remember me
+        </label>
+        <a href="#" class="forgot-link" data-testid="link-forgot">Forgot password?</a>
+      </div>
+
+      <button class="btn-login" id="loginBtn" data-testid="btn-login" onclick="handleLogin()">
+        Sign In
+      </button>
+
+      <div class="divider">demo credentials</div>
+
+      <div class="demo-hint">
+        <p>Use these to log in during testing:</p>
+        <div class="creds">Email: admin@taskflow.dev</div>
+        <div class="creds">Password: admin123</div>
+      </div>
+    </div>
+
+    <p class="page-footer">TaskFlow &copy; 2026 — Playwright Test App</p>
+  </div>
+
+  <script>
+    const VALID_EMAIL = 'admin@taskflow.dev';
+    const VALID_PASS  = 'admin123';
+
+    function showAlert(msg, type) {
+      const box = document.getElementById('alertBox');
+      box.textContent = msg;
+      box.className = `alert ${type} visible`;
+    }
+    function hideAlert() {
+      document.getElementById('alertBox').className = 'alert';
+    }
+
+    function validateEmail(v) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    }
+
+    function handleLogin() {
+      hideAlert();
+      const email    = document.getElementById('email');
+      const password = document.getElementById('password');
+      const emailErr = document.getElementById('emailErr');
+      const passErr  = document.getElementById('passErr');
+      let valid = true;
+
+      email.classList.remove('error-field');
+      password.classList.remove('error-field');
+      emailErr.classList.remove('visible');
+      passErr.classList.remove('visible');
+
+      if (!validateEmail(email.value.trim())) {
+        email.classList.add('error-field');
+        emailErr.classList.add('visible');
+        valid = false;
+      }
+      if (password.value.length < 6) {
+        password.classList.add('error-field');
+        passErr.classList.add('visible');
+        valid = false;
+      }
+      if (!valid) return;
+
+      const btn = document.getElementById('loginBtn');
+      btn.classList.add('loading');
+      btn.textContent = 'Signing in…';
+
+      setTimeout(() => {
+        if (email.value.trim() === VALID_EMAIL && password.value === VALID_PASS) {
+          sessionStorage.setItem('tf_user', JSON.stringify({ email: VALID_EMAIL, name: 'Admin' }));
+          showAlert('✓ Login successful! Redirecting…', 'success');
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+        } else {
+          showAlert('✗ Invalid email or password. Try the demo credentials below.', 'error');
+          btn.classList.remove('loading');
+          btn.textContent = 'Sign In';
+        }
+      }, 900);
+    }
+
+    // Enter key support
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleLogin();
+    });
+
+    // If already logged in, redirect
+    if (sessionStorage.getItem('tf_user')) {
+      window.location.href = 'dashboard.html';
+    }
+  </script>
+</body>
+</html>
